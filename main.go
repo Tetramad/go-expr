@@ -6,7 +6,6 @@ import (
 	"os"
 )
 
-var bufin *bufio.Reader = bufio.NewReader(os.Stdin)
 var bufout *bufio.Writer = bufio.NewWriter(os.Stdout)
 var buferr *bufio.Writer = bufio.NewWriter(os.Stderr)
 
