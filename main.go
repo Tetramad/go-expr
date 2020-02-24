@@ -11,11 +11,9 @@ var bufout *bufio.Writer = bufio.NewWriter(os.Stdout)
 var buferr *bufio.Writer = bufio.NewWriter(os.Stderr)
 
 func main() {
-	var args []string = os.Args
-
 	defer func() {
 		if r := recover(); r != nil {
-			buferr.WriteString(args[0])
+			buferr.WriteString(os.Args[0])
 			buferr.WriteString(": ")
 			s, ok := r.(string)
 			if !ok {
@@ -29,11 +27,7 @@ func main() {
 		buferr.Flush()
 	}()
 
-	if len(args) == 4 {
-		evaluation(args)
-	} else {
-		panic("missing operand")
-	}
+	bufout.WriteString(fmt.Sprintf("%d\n", buildTree(os.Args[1:]).eval()))
 }
 
 func evaluation(args []string) {
@@ -71,4 +65,61 @@ func toInt32(str string) int32 {
 
 func toString(value int32) string {
 	return fmt.Sprintf("%d", value)
+}
+
+type expression interface {
+	eval() int32
+}
+type number struct {
+	value int32
+}
+type operator struct {
+	value string
+	lhs   expression
+	rhs   expression
+}
+
+func (n number) eval() int32 {
+	return n.value
+}
+
+func (op operator) eval() int32 {
+	lhs := op.lhs.eval()
+	rhs := op.rhs.eval()
+	switch op.value {
+	case "+":
+		return lhs + rhs
+	case "-":
+		return lhs - rhs
+	case "*":
+		return lhs * rhs
+	case "/":
+		if rhs == 0 {
+			panic("division by zero")
+		}
+		return lhs / rhs
+	default:
+		panic("syntax error: unexpected argument")
+	}
+}
+
+func buildTree(strs []string) expression {
+	var root operator
+	switch len(strs) {
+	case 0:
+		panic("missing operand")
+	case 1:
+		return number{toInt32(strs[0])}
+	default:
+		root = operator{strs[1], nil, nil}
+		root.lhs = number{toInt32(strs[0])}
+		for i, str := range strs[2:] {
+			if i%2 == 0 {
+				root.rhs = number{toInt32(str)}
+			} else {
+				root = operator{str, root, nil}
+			}
+		}
+	}
+	return expression(root)
 }
