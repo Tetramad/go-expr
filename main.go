@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"go-expr/expression"
 	"os"
 )
@@ -27,8 +28,6 @@ func main() {
 	}()
 
 	rpn := expression.InfixToPostfix(os.Args[1:])
-	for _, str := range rpn {
-		bufout.WriteString(str)
-	}
-	bufout.WriteString("\n")
+	result := expression.EvaluatePostfixStrings(rpn)
+	bufout.WriteString(fmt.Sprintf("%d", result))
 }
