@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"go-expr/prototype"
 	"os"
 	"strconv"
 )
@@ -27,7 +28,32 @@ func main() {
 		buferr.Flush()
 	}()
 
-	bufout.WriteString(fmt.Sprintf("%d\n", buildTree(os.Args[1:]).eval()))
+	//bufout.WriteString(fmt.Sprintf("%d\n", buildTree(os.Args[1:]).eval()))
+	var opstack prototype.Stack = prototype.NewOperatorStack()
+	var rpnstrs []string
+	for i, str := range os.Args[1:] {
+		if i%2 == 1 {
+			op := prototype.NewOperator(str)
+			if opstack.Size() == 0 {
+				opstack.Push(op)
+			} else {
+				for opstack.Size() != 0 && opstack.Top().(prototype.Operator).Precedence() > op.Precedence() {
+					rpnstrs = append(rpnstrs, opstack.Top().(prototype.Operator).Symbol())
+					opstack.Pop()
+				}
+				opstack.Push(op)
+			}
+		} else {
+			rpnstrs = append(rpnstrs, str)
+		}
+	}
+	for opstack.Size() != 0 {
+		rpnstrs = append(rpnstrs, opstack.Top().(prototype.Operator).Symbol())
+		opstack.Pop()
+	}
+	for _, str := range rpnstrs {
+		bufout.WriteString(str)
+	}
 }
 
 func evaluation(args []string) {
