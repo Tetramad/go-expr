@@ -1,11 +1,14 @@
 package expression
 
-import "strconv"
+import (
+	"go-expr/stack"
+	"strconv"
+)
 
 // InfixToPostfix transform infix-notated expression string to postfix-notated expression string using token that consists of pair of symbol string and precedence.
 func InfixToPostfix(strs []string) []string {
 	var rpn []string
-	stack := newTokenStack()
+	stack := stack.NewStack()
 
 	for i, str := range strs {
 		if i%2 == 0 {
@@ -21,20 +24,20 @@ func InfixToPostfix(strs []string) []string {
 			if t.precedence == 0 {
 				panic("systax error: unexprected argument ' '")
 			}
-			if stack.size == 0 {
-				stack.push(t)
+			if stack.Size() == 0 {
+				stack.Push(t)
 			} else {
-				for stack.size != 0 && stack.top().precedence > t.precedence {
-					rpn = append(rpn, stack.top().symbol)
-					stack.pop()
+				for stack.Size() != 0 && stack.Top().(OperatorToken).precedence > t.precedence {
+					rpn = append(rpn, stack.Top().(OperatorToken).symbol)
+					stack.Pop()
 				}
-				stack.push(t)
+				stack.Push(t)
 			}
 		}
 	}
-	for stack.size != 0 {
-		rpn = append(rpn, stack.top().symbol)
-		stack.pop()
+	for stack.Size() != 0 {
+		rpn = append(rpn, stack.Top().(OperatorToken).symbol)
+		stack.Pop()
 	}
 	return rpn
 }
@@ -50,7 +53,7 @@ func isDigitString(str string) bool {
 
 // EvaluatePostfixStrings evaludate postfix-notated expression string to int32
 func EvaluatePostfixStrings(strs []string) int32 {
-	stack := newInt32Stack()
+	stack := stack.NewStack()
 
 	for _, str := range strs {
 		if isDigitString(str) {
@@ -58,31 +61,31 @@ func EvaluatePostfixStrings(strs []string) int32 {
 			if err != nil {
 				panic("non-ingeter argument")
 			}
-			stack.push(int32(conv))
+			stack.Push(int32(conv))
 		} else {
-			if stack.size < 2 {
+			if stack.Size() < 2 {
 				panic("syntax error: missing argument")
 			}
-			lhs := stack.top()
-			stack.pop()
-			rhs := stack.top()
-			stack.pop()
+			lhs := stack.Top().(int32)
+			stack.Pop()
+			rhs := stack.Top().(int32)
+			stack.Pop()
 			switch str {
 			case "+":
-				stack.push(lhs + rhs)
+				stack.Push(lhs + rhs)
 			case "-":
-				stack.push(lhs - rhs)
+				stack.Push(lhs - rhs)
 			case "*":
-				stack.push(lhs * rhs)
+				stack.Push(lhs * rhs)
 			case "/":
 				if rhs == 0 {
 					panic("division by zero")
 				}
-				stack.push(lhs / rhs)
+				stack.Push(lhs / rhs)
 			default:
 				panic("syntax error: unexpected argument")
 			}
 		}
 	}
-	return stack.top()
+	return stack.Top().(int32)
 }
