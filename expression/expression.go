@@ -17,7 +17,7 @@ func InfixToPostfix(strs []string) []interface{} {
 			if err != nil {
 				panic(err.Error())
 			}
-			for stack.Size() != 0 && stack.Top().(OperatorToken).precedence > conv.precedence {
+			for stack.Size() != 0 && stack.Top().(Operator).Precedence() > conv.Precedence() {
 				rpn = append(rpn, stack.Top())
 				stack.Pop()
 			}
@@ -41,7 +41,7 @@ func InfixToPostfix(strs []string) []interface{} {
 
 func isOperator(str string) bool {
 	for _, op := range operators {
-		if op.symbol == str {
+		if op.Symbol() == str {
 			return true
 		}
 	}
@@ -62,26 +62,20 @@ func EvaluatePostfixStrings(rpn []interface{}) int32 {
 	stack := stack.NewStack()
 
 	for _, expr := range rpn {
-		if conv, ok := expr.(OperatorToken); ok {
-			lhs := stack.Top().(int32)
-			stack.Pop()
-			rhs := stack.Top().(int32)
-			stack.Pop()
-			switch conv.symbol {
-			case "+":
-				stack.Push(lhs + rhs)
-			case "-":
-				stack.Push(lhs - rhs)
-			case "*":
-				stack.Push(lhs * rhs)
-			case "/":
-				if rhs == 0 {
-					panic("division by zero")
-				}
-				stack.Push(lhs / rhs)
-			default:
-				panic("syntax error: unexpected argument")
+		if conv, ok := expr.(Operator); ok {
+			var operands []interface{}
+			for i := 0; i < conv.OperandCount(); i++ {
+				operands = append(operands, stack.Top())
+				stack.Pop()
 			}
+			for i := 0; i < len(operands)/2; i++ {
+				operands[i], operands[len(operands)-i-1] = operands[len(operands)-i-1], operands[i]
+			}
+			value, err := conv.Evaluate(operands...)
+			if err != nil {
+				panic(err.Error())
+			}
+			stack.Push(value)
 		} else if conv, ok := expr.(int32); ok {
 			stack.Push(conv)
 		} else {
