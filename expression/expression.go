@@ -6,40 +6,46 @@ import (
 )
 
 // InfixToPostfix transform infix-notated expression string to postfix-notated expression string using token that consists of pair of symbol string and precedence.
-func InfixToPostfix(strs []string) []string {
-	var rpn []string
+func InfixToPostfix(strs []string) []interface{} {
+	var rpn []interface{}
 	stack := stack.NewStack()
 
-	for i, str := range strs {
-		if i%2 == 0 {
-			rpn = append(rpn, str)
-		} else {
-			t := OperatorToken{str, 0}
-			for _, token := range operators {
-				if token.symbol == t.symbol {
-					t.precedence = token.precedence
-					break
-				}
+	for _, str := range strs {
+		switch {
+		case isOperator(str):
+			conv, err := operatorFromString(str)
+			if err != nil {
+				panic(err.Error())
 			}
-			if t.precedence == 0 {
-				panic("systax error: unexprected argument ' '")
+			for stack.Size() != 0 && stack.Top().(OperatorToken).precedence > conv.precedence {
+				rpn = append(rpn, stack.Top())
+				stack.Pop()
 			}
-			if stack.Size() == 0 {
-				stack.Push(t)
-			} else {
-				for stack.Size() != 0 && stack.Top().(OperatorToken).precedence > t.precedence {
-					rpn = append(rpn, stack.Top().(OperatorToken).symbol)
-					stack.Pop()
-				}
-				stack.Push(t)
+			stack.Push(conv)
+		case isDigitString(str):
+			conv, err := strconv.ParseInt(str, 10, 32)
+			if err != nil {
+				panic(err.Error())
 			}
+			rpn = append(rpn, int32(conv))
+		default:
+			panic("unexpected argument")
 		}
 	}
 	for stack.Size() != 0 {
-		rpn = append(rpn, stack.Top().(OperatorToken).symbol)
+		rpn = append(rpn, stack.Top())
 		stack.Pop()
 	}
 	return rpn
+}
+
+func isOperator(str string) bool {
+	for _, op := range operators {
+		if op.symbol == str {
+			return true
+		}
+	}
+	return false
 }
 
 func isDigitString(str string) bool {
@@ -52,25 +58,16 @@ func isDigitString(str string) bool {
 }
 
 // EvaluatePostfixStrings evaludate postfix-notated expression string to int32
-func EvaluatePostfixStrings(strs []string) int32 {
+func EvaluatePostfixStrings(rpn []interface{}) int32 {
 	stack := stack.NewStack()
 
-	for _, str := range strs {
-		if isDigitString(str) {
-			conv, err := strconv.ParseInt(str, 10, 32)
-			if err != nil {
-				panic("non-ingeter argument")
-			}
-			stack.Push(int32(conv))
-		} else {
-			if stack.Size() < 2 {
-				panic("syntax error: missing argument")
-			}
+	for _, expr := range rpn {
+		if conv, ok := expr.(OperatorToken); ok {
 			lhs := stack.Top().(int32)
 			stack.Pop()
 			rhs := stack.Top().(int32)
 			stack.Pop()
-			switch str {
+			switch conv.symbol {
 			case "+":
 				stack.Push(lhs + rhs)
 			case "-":
@@ -85,6 +82,10 @@ func EvaluatePostfixStrings(strs []string) int32 {
 			default:
 				panic("syntax error: unexpected argument")
 			}
+		} else if conv, ok := expr.(int32); ok {
+			stack.Push(conv)
+		} else {
+			panic("unkown error")
 		}
 	}
 	return stack.Top().(int32)
