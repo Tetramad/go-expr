@@ -12,16 +12,31 @@ func InfixToPostfix(strs []string) []interface{} {
 
 	for _, str := range strs {
 		switch {
+		case str == "(":
+			stack.Push("(")
+		case str == ")":
+			for stack.Size() != 0 && stack.Top() != "(" {
+				rpn = append(rpn, stack.Top())
+				stack.Pop()
+			}
+			if stack.Size() == 0 {
+				panic("unmatched parenthesis")
+			}
+			stack.Pop()
 		case isOperator(str):
 			conv, err := operatorFromString(str)
 			if err != nil {
 				panic(err.Error())
 			}
-			for stack.Size() != 0 && stack.Top().(Operator).Precedence() > conv.Precedence() {
-				rpn = append(rpn, stack.Top())
-				stack.Pop()
+			if stack.Size() != 0 && stack.Top() == "(" {
+				stack.Push(conv)
+			} else {
+				for stack.Size() != 0 && stack.Top().(Operator).Precedence() > conv.Precedence() {
+					rpn = append(rpn, stack.Top())
+					stack.Pop()
+				}
+				stack.Push(conv)
 			}
-			stack.Push(conv)
 		case isDigitString(str):
 			conv, err := strconv.ParseInt(str, 10, 32)
 			if err != nil {
