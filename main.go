@@ -29,5 +29,5 @@ func main() {
 
 	rpn := expression.InfixToPostfix(os.Args[1:])
 	result := expression.EvaluatePostfixStrings(rpn)
-	bufout.WriteString(fmt.Sprintf("%d", result))
+	bufout.WriteString(fmt.Sprintf("%d\n", result))
 }
